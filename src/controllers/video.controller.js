@@ -27,9 +27,7 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400,"This video id is not valid!")
     }
 
-    const video = await Video.findById({
-        _id:videoId
-    })
+    const video = await Video.findById(videoId)
 
     if( !video || ( !video?.isPublished &&  !(video?.owner.toString() === req.user?._id.toString()) ) ){
         throw new ApiError(404,"Video not found")
@@ -49,60 +47,95 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
-    if(!videoId || !isValidObjectId(videoId)){
-        throw new ApiError(400,"This video id is not valid!")
+    try {
+        if(!videoId || !isValidObjectId(videoId)){
+            throw new ApiError(400,"This video id is not valid!")
+        }
+    
+        const video = await Video.findById(videoId)
+    
+        if(!video){
+            throw new ApiError(404, "video not found")
+        }
+    
+        // owner field in the document is objectId of the person who uploaded the video
+        // We'll check whether the current user's _id is same as Owner's objectId, if not then they are not authorized to access that video
+        if(video?.owner.toString() !== req.user?._id.toString()){
+            throw new ApiError(401, "Unauthorized: You are not allowed to delete this video");
+        }
+    
+        //We'll delete the files from cloudinary and then remove the corresponding document from our collections
+    
+        if(video?.videoFile){
+            const videoPublicId = getPublicId(video.videoFile)
+            await deleteOnCloudinary(videoPublicId,"video")
+        }
+    
+        if(video?.thumbnail){
+            const thumbnailPublicId = getPublicId(video.thumbnail)
+            await deleteOnCloudinary(thumbnailPublicId, "image")
+        }
+    
+        //delete video and associated relations from db
+        await Promise.all([
+            Like.deleteMany({video:videoId}),
+            Comment.deleteMany({video:videoId}),
+            PlayList.updateMany({},{$pull:{videos:videoId}}),
+            User.updateMany({},{$pull:{watchHistory: videoId}})
+        ])
+    
+        const deleteResponse = await Video.findByIdAndDelete(videoId);
+    
+        if(!deleteResponse){
+            throw new ApiError(500, "something went wrong while deleting video !!")
+        }
+    
+        return res.
+        status(200)
+        .json(
+            new ApiResponse(200, deleteResponse, "Video deleted successfully")
+        )
+    } catch (error) {
+        throw new ApiError(400, "Something went wrong while deleting the Video!!")
     }
-
-    const video = await Video.findById({
-        _id:videoId
-    })
-
-    if(!video){
-        throw new ApiError(404, "video not found")
-    }
-
-    // owner field in the document is objectId of the person who uploaded the video
-    // We'll check whether the current user's _id is same as Owner's objectId, if not then they are not authorized to access that video
-    if(video?.owner.toString() !== req.user?._id.toString()){
-        throw new ApiError(403, "Unauthorized: You are not allowed to delete this video");
-    }
-
-    //We'll delete the files from cloudinary and then remove the corresponding document from our collections
-
-    if(video?.videoFile){
-        const videoPublicId = getPublicId(video.videoFile)
-        await deleteOnCloudinary(videoPublicId,"video")
-    }
-
-    if(video?.thumbnail){
-        const thumbnailPublicId = getPublicId(video.thumbnail)
-        await deleteOnCloudinary(thumbnailPublicId, "image")
-    }
-
-    //delete video and associated relations from db
-    await Promise.all([
-        Like.deleteMany({video:videoId}),
-        Comment.deleteMany({video:videoId}),
-        PlayList.updateMany({},{$pull:{videos:videoId}}),
-        User.updateMany({},{$pull:{watchHistory: videoId}})
-    ])
-
-    const deleteResponse = await Video.findByIdAndDelete(videoId);
-
-    if(!deleteResponse){
-        throw new ApiError(500, "something went wrong while deleting video !!")
-    }
-
-    return res.
-    status(200)
-    .json(
-        new ApiResponse(200, deleteResponse, "Video deleted successfully")
-    )
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-})
+    try {
+        if(!videoId || !isValidObjectId(videoId)){
+            throw new ApiError(400,"This video id is not valid!")
+        }
+    
+        const video = await Video.findById({
+            _id:videoId
+        })
+    
+        if(!video){
+            throw new ApiError(404, "video not found")
+        }
+
+        if(video?.owner.toString() !== req.user?._id.toString()){
+            throw new ApiError(401, "Unauthorized: You are not allowed to toggle publish status of this video");
+        }
+
+        const toggleVideoPublishStatus = await Video.findByIdAndUpdate(videoId,
+            {$set:{isPublished: !video.isPublished}}
+            ,{new:true} 
+        );
+
+        if(!toggleVideoPublishStatus){
+            throw new ApiError(500, "Something went wrong while toggeling the status")
+        }
+
+        return res.
+        status(200)
+        .json(
+            new ApiResponse(200,toggleVideoPublishStatus, "Video Publish status toggled successfully!")
+        )
+        } catch (error) {
+        throw new ApiError(500, error?.message||"Failed to toggle publish status.")
+    }})
 
 export {
     getAllVideos,
