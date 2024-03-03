@@ -5,21 +5,147 @@ import { User } from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import { Comment } from "../models/comment.model.js"
+import { Tweet } from "../models/tweet.model.js"
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const {videoId} = req.params
     //TODO: toggle like on video
+    const userId = req.user?._id;
+
+    if(!videoId || !isValidObjectId(videoId)){
+    throw new ApiError(400,"This video id is not valid!")
+    }
+    
+    try {
+        const video = await Video.findById(videoId)
+        if(!video || ( video.owner.toString() !== req.user?._id.toString() && !video.isPublished) ){
+            throw new ApiError(404,"Video Not found")
+        }
+        const existingLike = await Like.findOne({ likedBy: userId, video: videoId });
+
+        if(existingLike){
+            const dislike = await Like.findOneAndDelete({
+                video:videoId,
+                likedBy:userId
+            });
+
+            if(!dislike){
+                throw new ApiError(500, "Unable to dislike the video")
+            }
+
+            return res.
+            status(200)
+            .json( new ApiResponse(200,{}, "Video disliked successfully!"))
+        }else{
+            const addLike = await Like.create({
+                likedBy:userId,
+                video:videoId
+            })
+            
+            return res
+            .status(200)
+            .json(new ApiResponse(200,{},"Video Liked successfully"))
+        }
+
+        
+    } catch (error) {
+        throw new ApiError(500, error?.message || "Something went wrong while toggling video like");
+    }
 })
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const {commentId} = req.params
-    //TODO: toggle like on comment
+    //TODO: toggle like on comment;
+    const userId = req.user?._id;
+
+    if(!commentId || !isValidObjectId(commentId)){
+    throw new ApiError(400,"This comment id is not valid!")
+    }
+    
+    try {
+        const comment = await Comment.findById(commentId)
+        if(!comment || ( comment.owner.toString() !== req.user?._id.toString()) ){
+            throw new ApiError(404,"comment Not found")
+        }
+        const existingLike = await Like.findOne({ likedBy: userId, comment: commentId });
+
+        if(existingLike){
+            const dislike = await Like.findOneAndDelete({
+                comment:commentId,
+                likedBy:userId
+            });
+
+            if(!dislike){
+                throw new ApiError(500, "Unable to dislike the comment")
+            }
+
+            return res.
+            status(200)
+            .json( new ApiResponse(200,{}, "comment disliked successfully!"))
+        }else{
+            const addLike = await Like.create({
+                likedBy:userId,
+                comment:commentId
+            })
+            
+            return res
+            .status(200)
+            .json(new ApiResponse(200,{},"comment Liked successfully"))
+        }
+
+        
+    } catch (error) {
+        throw new ApiError(500, error?.message || "Something went wrong while toggling comment like");
+    }
 
 })
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
     //TODO: toggle like on tweet
+    const userId = req.user?._id;
+
+    if(!tweetId || !isValidObjectId(tweetId)){
+    throw new ApiError(400,"This tweet id is not valid!")
+    }
+    
+    try {
+        const tweet = await Tweet.findById(tweetId)
+        if(!tweet || ( tweet.owner.toString() !== req.user?._id.toString()) ){
+            throw new ApiError(404,"tweet Not found")
+        }
+        const existingLike = await Like.findOne({ likedBy: userId, tweet: tweetId });
+
+        if(existingLike){
+            const dislike = await Like.findOneAndDelete({
+                tweet:tweetId,
+                likedBy:userId
+            });
+
+            if(!dislike){
+                throw new ApiError(500, "Unable to dislike the tweet")
+            }
+
+            return res.
+            status(200)
+            .json( new ApiResponse(200,{}, "tweet disliked successfully!"))
+        }else{
+            const addLike = await Like.create({
+                likedBy:userId,
+                tweet:tweetId
+            })
+            
+            return res
+            .status(200)
+            .json(new ApiResponse(200,{},"tweet Liked successfully"))
+        }
+
+        
+    } catch (error) {
+        throw new ApiError(500, error?.message || "Something went wrong while toggling tweet like");
+    }
+    
 }
 )
 
