@@ -11,6 +11,7 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
     // TODO: get user tweets
+    // Need: thumbnail, fullName, createdAt, content, _id, Likes count
 })
 
 const updateTweet = asyncHandler(async (req, res) => {

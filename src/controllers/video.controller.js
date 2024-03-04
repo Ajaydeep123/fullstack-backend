@@ -13,6 +13,7 @@ import {uploadOnCloudinary, deleteOnCloudinary, getPublicId} from "../utils/clou
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     //TODO: get all videos based on query, sort, pagination
+    
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -107,9 +108,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
             throw new ApiError(400,"This video id is not valid!")
         }
     
-        const video = await Video.findById({
-            _id:videoId
-        })
+        const video = await Video.findById(videoId)
     
         if(!video){
             throw new ApiError(404, "video not found")
