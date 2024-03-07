@@ -21,7 +21,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
             throw new ApiError(400,"This channel does not Exists")
         }            
         const subscribed = await Subscription.findOne(filterOrCredential);
-        
+
         if(!subscribed){
             const subscribe = await Subscription.create(filterOrCredential);
             if(!subscribe){
@@ -49,12 +49,199 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const {channelId} = req.params
+        if(!channelId || !isValidObjectId(channelId)){
+        throw new ApiError(
+            400,
+            "This channel id is not valid"
+        )
+    }
+
+
+    try {
+        const channelSubscribers = await Subscription.aggregate([
+            {
+                $match:{
+                    subscriber: new mongoose.Types.ObjectId(channelId)   
+                }
+            },
+            {
+                $lookup:{
+                    from:"users",
+                    localField:"channel",
+                    foreignField:"_id",
+                    as:"channelInfo",
+                },
+            },
+            {
+                $unwind:"$channelInfo",
+            },
+            {
+                 $lookup:{
+                    from:"users",
+                    localField:"subscriber",
+                    foreignField:"_id",
+                    as:"subscriberInfo",
+                },
+            },
+            {
+                $unwind:"$subscriberInfo",
+            },
+            {
+                $project:{
+                    _id:1,
+                    channel:1,
+                    channelInfo:{
+                        channel_id: "$channelInfo._id",
+                        channelName: "$channelInfo.username",
+                        avatar: "$channelInfo.avatar",             
+                        createdAt:"$channelInfo.createdAt",   
+                    },
+                    subscriberInfo:{
+                        subscriber_id:"$subscriberInfo._id",
+                        username:"$subscriberInfo.username",
+                        avatar:"$subscriberInfo.avatar",
+                        fullname:"$subscriberInfo.fullName",
+                    },
+                },
+            },
+            {
+                $group:{
+                    _id:"$channel",
+                    subscribers:{
+                        $push:"$subscriberInfo"
+                    },
+                    channelInfo:{
+                        $first:"$channelInfo"
+                    },
+                },
+            },
+            {
+                $addFields:{
+                    subscribersCount:{
+                        $size:"$subscribers"
+                    },
+                },
+            },
+            {
+                $project:{
+                    _id:0,
+                },
+            },
+        ]);
+
+        if (!channelSubscribers || channelSubscribers.length === 0) {
+            return res
+            .status(200)
+            .json(new ApiResponse(200, {}, "No Subscribers found"));
+        }
+        return res.status(200).json(new ApiResponse(200,channelSubscribers,"user channel subscribed successfully"));  
+
+    } catch (error) {
+        throw new ApiError(500, error?.message|| "something went wrong while fetching the user channel's subscribers")
+    }
 
 })
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params
+// We need : Channel's username, subscribers count, avatar
+    if(!subscriberId || !isValidObjectId(subscriberId)){
+        throw new ApiError(
+            400,
+            "This subscriber id is not valid"
+        )
+    }
+
+    try {
+        const channelList = await Subscription.aggregate([
+            {
+                $match:{
+                    subscriber: new mongoose.Types.ObjectId(channelId)   
+                },
+            },
+            {
+                 $lookup:{
+                    from:"users",
+                    localField:"subscriber",
+                    foreignField:"_id",
+                    as:"subscriberInfo",
+                },
+            },
+            {
+                $unwind:"$subscriberInfo",
+            },
+            {
+                $lookup:{
+                    from:"users",
+                    localField:"channel",
+                    foreignField:"_id",
+                    as:"channelInfo",
+                },
+            },
+            {
+                $unwind:"$channelInfo",
+            },   
+            {
+                $project:{
+                    _id:1,
+                    channel:1,
+                    channelInfo:{
+                        channel_id: "$channelInfo._id",
+                        channelName: "$channelInfo.username",
+                        avatar: "$channelInfo.avatar",             
+                        createdAt:"$channelInfo.createdAt",   
+                    },
+                    subscriberInfo:{
+                        subscriber_id:"$subscriberInfo._id",
+                        username:"$subscriberInfo.username",
+                        avatar:"$subscriberInfo.avatar",
+                        fullname:"$subscriberInfo.fullName",
+                    },
+                },
+            },      
+            {
+                $group:{
+                    _id:"$subscriber",
+                    subscribedChannels:{
+                        $push:"$channelInfo",
+                    },
+                    userInfo:{
+                        $first:"$subscriberInfo",
+                    },
+                },
+            },
+            {
+                $addFields:{
+                    sunscribedChannelCount:{
+                        $size:"$subscribedChannels",
+                    },
+                },
+            },
+            {
+                $project:{
+                    _id:0,
+                },
+            },  
+        ]);
+
+        if(!channelList || channelList.length === 0){
+            return res.
+            status(200).
+            json(new ApiResponse(200,[], "No subscribed Channels found for the user!!"))
+        }
+
+        return res.
+        status(200).
+        json(new ApiResponse(200, channelList,"All Subscribed Channels fetched Successfully!!"))
+
+    } catch (error) {
+        throw new ApiError(500, error?.message|| "something went wrong while fetching the user's subscribed channels.")
+
+    }
+
+
+
 })
 
 export {
