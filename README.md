@@ -29,7 +29,9 @@ npm install
 
 To run the application:
 
-```bash npm run dev ```
+```bash 
+npm run dev
+```
 
 
 ## Contribution Guidelines
