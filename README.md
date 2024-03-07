@@ -37,11 +37,10 @@ npm run dev
 ## Contribution Guidelines
 We welcome contributions from the community. If you wish to contribute to the project, please follow these guidelines:
 
-1. Fork the repository and create your branch from `master`.
+1. Fork the repository and create your branch.
 2. Write clear and concise commit messages.
 3. Ensure that your code adheres to the existing code format standards.
 4. Write tests for your new features or fixes.
-5. Submit a pull request targeting the `master` branch of the original repository.
 
 ## Future Prospects
 - **Video Analytics**: Implement analytics to provide insights on video performance, viewer engagement, and demographics.
