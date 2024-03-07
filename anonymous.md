@@ -45,4 +45,7 @@ Status Codes
 
 #### Checkpoint 1 : Done with Users, tweet, dashboard, like, healthcheck API
 
+#### Checkpoint 2 : subscription controllers done, some controllers from playlist and comment done as well/
 
+
+- Some left for daily practice.
