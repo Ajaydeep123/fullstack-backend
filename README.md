@@ -1,5 +1,5 @@
 # True Social : A video Streaming platform for your community.
-
+#### Data Model : [Link](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj)
 ## Overview
 This repository contains the backend codebase for a full-featured video streaming platform. It is built using MongoDB for database management and Express.js for handling server-side logic. The backend supports user authentication, video management, likes, subscriptions, and social media interactions.
 
