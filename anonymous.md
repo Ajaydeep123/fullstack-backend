@@ -42,5 +42,7 @@ Status Codes
 
 ```
 
-#### Controllers
+
+#### Checkpoint 1 : Done with Users, tweet, dashboard, like, healthcheck API
+
 
